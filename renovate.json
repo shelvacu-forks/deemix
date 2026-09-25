@@ -28,7 +28,8 @@
 		{
 			"matchFileNames": [
 				".github/workflows/create-release-or-publish.yml",
-				".github/workflows/pull-request.yml"
+				".github/workflows/pull-request.yml",
+				".github/workflows/update-nix-pnpm-hash.yml"
 			],
 			"matchPackageNames": ["*"],
 			"semanticCommitScope": "ci",

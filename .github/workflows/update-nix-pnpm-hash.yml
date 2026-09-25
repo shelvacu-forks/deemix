@@ -1,0 +1,51 @@
+name: Update Nix pnpm Hash
+
+# pkgs/deemix.nix pins a fixed-output hash of the vendored pnpm store, which
+# goes stale whenever the lockfile changes — including on the automated
+# dependency PRs Renovate opens. This recomputes it and pushes the fix onto the
+# PR branch.
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "package.json"
+      - "packages/*/package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "flake.nix"
+      - "flake.lock"
+      - "pkgs/**"
+
+permissions:
+  contents: write
+
+env:
+  HUSKY: 0
+
+jobs:
+  update-nix-pnpm-hash:
+    # Pushing to the PR branch only works for branches in this repository.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - uses: cachix/install-nix-action@v31
+
+      - run: ./pkgs/update-pnpm-hash.sh
+
+      - name: Commit and push if the hash changed
+        run: |
+          if git diff --quiet -- pkgs/deemix.nix; then
+            echo "Nothing to do."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(repo): update nix pnpmDeps hash" -- pkgs/deemix.nix
+          git push
